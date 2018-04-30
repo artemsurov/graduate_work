@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: crawler
+  labels:
+    app: crawler
+    component: crawler-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crawler
+      component: crawler-app
+  template:
+    metadata:
+      name: crawler-pod
+      labels:
+        app: crawler
+        component: crawler-app
+    spec:
+      containers:
+      - image: asurov/crawler
+        name: crawler

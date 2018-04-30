@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: rebbit
+  labels:
+    app: crawler
+    component: rebbit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crawler
+      component: rebbit
+  template:
+    metadata:
+      name: rebbit-pod
+      labels:
+        app: crawler
+        component: rebbit
+    spec:
+      containers:
+      - image: rabbitmq:3
+        name: rebbit

@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rebbit
+  labels:
+    app: crawler
+    component: rebbit
+spec:
+  ports:
+  - port: 5672
+  selector:
+    app: crawler
+    component: rebbit
