@@ -20,5 +20,5 @@ spec:
         component: ui
     spec:
       containers:
-      - image: asurov/ui:2.0
+      - image: asurov/crawler-ui
         name: ui

@@ -16,7 +16,7 @@ spec:
     metadata:
       name: mongo
       labels:
-        app: reddit
+        app: crawler
         component: mongo
     spec:
       containers:
@@ -37,7 +37,6 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: slow
   resources:
     requests:
       storage: 10Gi
