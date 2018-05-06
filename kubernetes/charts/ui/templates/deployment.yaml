@@ -27,4 +27,4 @@ spec:
         name: ui
         env: 
         - name: MONGO
-          value: {{ .Values.mongoHost | defalt (printf "%s-mongodb" .Release.Name) }}
+          value: {{ .Values.mongoHost | default (printf "%s-mongodb" .Release.Name) }}

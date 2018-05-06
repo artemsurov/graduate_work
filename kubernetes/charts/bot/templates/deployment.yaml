@@ -27,6 +27,6 @@ spec:
         name: crawler
         env: 
         - name: MONGO
-          value: {{ .Values.mongoHost | defalt (printf "%s-mongodb" .Release.Name) }}
+          value: {{ .Values.mongoHost | default (printf "%s-mongodb" .Release.Name) }}
         - name: RMQ_HOST
-          value: {{ .Values.rmqHost | defalt (printf "%s-rabbitmq" .Release.Name) }}
+          value: {{ .Values.rmqHost | default (printf "%s-rabbitmq" .Release.Name) }}

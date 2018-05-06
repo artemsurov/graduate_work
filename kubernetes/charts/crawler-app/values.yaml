@@ -6,3 +6,7 @@ ui:
   image:
     repository: asurov/crawler-ui
     tag: latest
+rabbitmq:
+  rabbitmq:
+      username: guest
+      password: guest
