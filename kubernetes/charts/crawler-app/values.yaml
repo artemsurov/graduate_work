@@ -10,3 +10,5 @@ rabbitmq:
   rabbitmq:
       username: guest
       password: guest
+mongodb:
+  usePassword: false
