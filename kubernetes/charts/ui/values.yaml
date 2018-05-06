@@ -1,0 +1,6 @@
+---
+image:
+  repository: asurov/crawler-ui
+  tag: latest
+
+MONGO:

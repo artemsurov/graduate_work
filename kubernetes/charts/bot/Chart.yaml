@@ -1,0 +1,8 @@
+---
+name: bot
+version: 1.0.0
+description: Bot for grab information by sites
+maintainers:
+  - name: Artem Surov
+    email: artemka@surov.com
+appVersion: 1.0

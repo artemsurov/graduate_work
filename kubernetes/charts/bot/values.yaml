@@ -1,0 +1,8 @@
+---
+image:
+  repository: asurov/crawler
+  tag: latest
+
+MONGO:
+
+RMQ_HOST:

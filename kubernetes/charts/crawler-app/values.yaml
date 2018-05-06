@@ -1,0 +1,8 @@
+bot:
+  image:
+    repository: asurov/crawler
+    tag: latest
+ui:
+  image:
+    repository: asurov/crawler-ui
+    tag: latest

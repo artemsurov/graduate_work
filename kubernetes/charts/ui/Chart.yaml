@@ -1,0 +1,8 @@
+---
+name: ui
+version: 1.0.0
+description: UI interface for crawler app
+maintainers:
+  - name: Artem Surov
+    email: artemka@surov.com
+appVersion: 1.0
