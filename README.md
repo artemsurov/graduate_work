@@ -6,3 +6,16 @@
 4. Проверяем в браузере
 ## Описываем контейнеры в kubernete объектах 
     
+
+При ининциализации Tiller-a имет смысл не забывать дать ему собственный ServiceAccount.
+ServiceAccount описан в tiller.yaml, загружаем в kubernetes:
+kubectl apply -f tiller.yml
+Инициализируем tiller:
+helm init --service-account tiller
+
+Для установки gitlaba нужно выполнить следующие команды:
+Отключить RBAC для упрощения работы.
+helm install --name gitlab . -f values.yaml
+Узнать ip адрес:
+kubectl get service -n nginx-ingress nginx
+echo "35.234.78.177 gitlab-gitlab staging production” | sudo tee -a /etc/hosts
