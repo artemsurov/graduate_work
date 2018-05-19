@@ -17,3 +17,4 @@ spec:
     app: crawler
     component: ui
     release: {{ .Release.Name }}
+

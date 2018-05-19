@@ -24,9 +24,28 @@
       - [Запуск Бешеного Тиля на Улицу Кубирнетиса](#tiller-kubernetes-run)
       - [Что с Тилем?](#tiller-kubernetes-test)
 3. [Как друзья в Топ-Чарт попали](#charts)
-      - [День рождения Бешеного Тиля](#tiller-kubernetes-make)
-      - [Запуск Бешеного Тиля на Улицу Кубирнетиса](#tiller-kubernetes-run)
-      - [Что с Тилем?](#tiller-kubernetes-test)
+
+   1. [Уй попадает в Чарт](#charts-ui)
+
+      - [Как тимплейт съел Уя](#charts-ui-deployment)
+      - [Дох Уя переселился в Чарт?](#charts-ui-service)
+      - [Что же значили те буковки, Уй?](#charts-ui-values)
+
+   2. [Краулер идёт по следу Уя в Чарт](#charts-crawler)
+
+      - [У чарта Краулера есть свой чарт](#charts-crawler-chart)
+      - [Краулер раскрывает карты](#charts-crawler-values)
+      - [Что же значили те буковки?](#charts-ui-values)
+
+   3.[Мечтают ли боты побывать в Чарте?](#charts-bot)
+
+      - [Великие тайны робота](#charts-bot-values)
+      - [Мечты сбываются](#charts-bot-chart)
+      - [Что у бота под капотом?](#charts-bot-deployment)
+      - [Бот спешит на помощь?](#charts-bot-helper)
+   4. [Поляна чарта под микроскопом](#charts-structure)
+   5. [Кому нужна помощь функций?](#charts-helpers)
+   6. [Что внутри помощников?](#charts-helpers-structure)
 
 ## Dockerfile UI и Crawler <a name="dockerfile_ui_crawler"></a>
 
@@ -386,7 +405,7 @@ Chart - это пакет в Helm.
 mkdir bot crawler-app gitlab-omnibus ui
 ```
 
-### Начнем разработку Chart’а для компоненты ui приложения
+### Начнем разработку Chart’а для компоненты ui приложения <a name="charts-ui"></a>
 
 ui/Chart.yaml helm предпочитает .yaml
 
@@ -399,72 +418,17 @@ maintainers:
     email: artemka@surov.com
 appVersion: 1.0
 ```
-
-#### Templates
-
 ```markdown
 Основным содержимым Chart’ов являются шаблоны манифестов Kubernetes.
 ```
-### Установка Chart'a
+### Установка Chart'a <a name="charts-install"></a>
 
 ```bash
 helm install --name test-ui-1 ui/
 ```
-> output
 
-```markdown
-NAME:   test-ui-1
-LAST DEPLOYED: Sun Apr 15 16:12:41 2018
-NAMESPACE: default
-STATUS: DEPLOYED
 
-RESOURCES:
-==> v1beta1/Deployment
-NAME  AGE
-ui    1s
 
-==> v1beta1/Ingress
-ui  1s
-
-==> v1/Service
-ui  1s
-```
-
-##### 3) Посмотрим, что получилось
-
-```bash
-helm ls
-```
-
-```markdown
-NAME            REVISION        UPDATED                         STATUS          CHART           NAMESPACE
-test-ui-1       1               Sun Apr 15 16:12:41 2018        DEPLOYED        ui-1.0.0        default  
-```
-
-##### Теперь сделаем так, чтобы можно было использовать 1 Chart для запуска нескольких экземпляров (релизов). Шаблонизируем его.
-
-ui/templates/service.yaml
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}   # Нам нужно уникальное имя запущенного ресурса
-  labels:
-    app: reddit
-    component: ui
-    release: {{ .Release.Name }}                # Помечаем, что сервис из конкретного релиза
-spec:
-  type: NodePort
-  ports:
-  - port: 9292
-    protocol: TCP
-    targetPort: 9292
-  selector:
-    app: reddit
-    component: ui
-    release: {{ .Release.Name }}                # Выбираем поды только из этого релиза
-```
 
 ```markdown
 name: {{ .Release.Name }}-{{ .Chart.Name }}
@@ -484,117 +448,19 @@ name: {{ .Release.Name }}-{{ .Chart.Name }}
 .Files.Get - получить содержимое файла
 ```
 
-##### Шаблонизируем подобным образом остальные сущности
-
-ui/templates/deployment.yaml
-
-```markdown
-apiVersion: apps/v1beta1
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  labels:
-    app: reddit
-    component: ui
-    release: {{ .Release.Name }}
-spec:
-  replicas: 3
-  strategy:
-    type: Recreate
-  selector:                                     # важно, чтобы selector deployment’а нашел только нужные POD’ы.
-    matchLabels:
-      app: reddit
-      component: ui
-      release: {{ .Release.Name }}
-  template:
-    metadata:
-      name: ui-pod
-      labels:
-        app: reddit
-        component: ui
-        release: {{ .Release.Name }}
-    spec:
-      containers:
-      - image: asomir/ui
-        name: ui
-        ports:
-        - containerPort: 9292
-          name: ui
-          protocol: TCP
-        env:
-        - name: ENV
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-```
-
-ui/templates/ingress.yaml
-
-```markdown
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  annotations:
-    kubernetes.io/ingress.class: "gce"
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /*
-        backend:
-          serviceName: {{ .Release.Name }}-{{ .Chart.Name }}
-          servicePort: 9292
-```
-
-##### Установим несколько релизов ui
-
-```bash
-helm install ui --name ui-1
-helm install ui --name ui-2 
-helm install ui --name ui-3
-```
-ui-1 ui-2 ui-3 - Имя релиза
-
-> output
-
-```markdown
-NAME:   ui-3
-LAST DEPLOYED: Sun Apr 15 16:25:47 2018
-NAMESPACE: default
-STATUS: DEPLOYED
-
-RESOURCES:
-==> v1/Service
-NAME     AGE
-ui-3-ui  0s
-
-==> v1beta1/Deployment
-ui-3-ui  0s
-
-==> v1beta1/Ingress
-ui-3-ui  0s
-```
-##### Проверяем ингрессы
-
 ```bash
 kubectl get ingress
 ```
 >output
 
 ```markdown
-NAME      HOSTS     ADDRESS          PORTS     AGE
-ui-1-ui   *         35.186.251.110   80        2m
-ui-2-ui   *         35.190.51.208    80        2m
-ui-3-ui   *         35.190.44.156    80        2m
+NAME      HOSTS     ADDRESS         PORTS     AGE
+ui        *         35.201.91.172   80, 443   6h
 ```
 > По IP-адресам можно попасть на разные релизы ui- приложений (необходимо подождать несколько минут).
 
-Мы уже сделали возможность запуска нескольких версий
-приложений из одного пакета манифестов, используя лишь
-встроенные переменные.
 
-##### Кастомизируем установку своими переменными (образ и порт).
+### Кастомизируем установку своими переменными (образ и порт). <a name="charts-ui-deployment"></a>
 
 ui/templates/deployment.yaml
 
@@ -602,41 +468,36 @@ ui/templates/deployment.yaml
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "ui.fullname" . }}
   labels:
-    app: reddit
+    app: crawler
     component: ui
     release: {{ .Release.Name }}
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
-      app: reddit
+      app: crawler
       component: ui
       release: {{ .Release.Name }}
   template:
     metadata:
-      name: ui
+      name: ui-pod
       labels:
-        app: reddit
+        app: crawler
         component: ui
-        release: {{ .Release.Name }}                                        
+        release: {{ .Release.Name }}
     spec:
       containers:
-      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"  # Ссылка на наш репозиторий и сам имедж 
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}" # Ссылка на наш репозиторий и сам имедж 
         name: ui
-        ports:
-        - containerPort: {{ .Values.service.internalPort }}              # Параметризируем порт
-          name: ui
-          protocol: TCP
-        env:
-        - name: ENV
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+        env: 
+        - name: MONGO
+          value: {{ .Values.mongoHost | default (printf "%s-mongodb" .Release.Name) }}
 ```
+
+### Сервис веб-приложения в чарте <a name="charts-ui-service"></a>
+
 ui/templates/service.yaml
 
 ```yaml
@@ -679,7 +540,9 @@ spec:
           servicePort: {{ .Values.service.externalPort }}
 ```
 
-##### Собственно, определяем значения переменных:
+### Собственно, определяем значения переменных: <a name="charts-ui-values"></a>
+
+ui/templates/values.yaml
 
 ```yaml
 service:
@@ -687,89 +550,12 @@ service:
   externalPort: 9292
 
 image:
-  repository: asomir/ui
+  repository: asurov/crawler
   tag: latest
-```
 
-##### Запускаем наши образы:
+MONGO:
 
-```bash
-helm upgrade ui-1 ui/
-helm install ui-2 ui/
-helm install ui-3 ui/
-```
-##### Мы собрали Chart для развертывания ui-компоненты приложения. Он должен иметь следующую структуру:
-
-```markdown
-└── ui
-    ├── Chart.yaml
-    └── templates
-        ├── deployment.yaml
-        ├── ingress.yaml
-        └── service.yaml
-```
-
-##### Осталось собрать пакеты для остальных компонент
-
-post/templates/service.yaml
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  labels:
-    app: reddit
-    component: post
-    release: {{ .Release.Name }}
-spec:
-  type: ClusterIP
-  ports:
-  - port: {{ .Values.service.externalPort }}
-    protocol: TCP
-    targetPort: {{ .Values.service.internalPort }}
-  selector:
-    app: reddit
-    component: post
-    release: {{ .Release.Name }}
-```
-
-post/templates/deployment.yaml
-
-```yaml
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  labels:
-    app: reddit
-    component: post
-    release: {{ .Release.Name }}
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: reddit
-      component: post
-      release: {{ .Release.Name }}
-  template:
-    metadata:
-      name: post
-      labels:
-        app: reddit
-        component: post
-        release: {{ .Release.Name }}
-    spec:
-      containers:
-      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        name: post
-        ports:
-        - containerPort: {{ .Values.service.internalPort }}
-          name: post
-          protocol: TCP
-        env:
-        - name: POST_DATABASE_HOST
-          value: postdb
+RMQ_HOST:
 ```
 
 ```markdown
@@ -799,118 +585,194 @@ env:
 
 Теперь, если databaseHost не задано, то будет использован адрес базы, поднятой внутри релиза
 ```
-post/values.yaml
+
+## Шаблонизируем сервис crawler: <a name="charts-crawler"></a>
+
+
+### Helm chart crawler <a name="charts-crawler-chart"></a>
+crawler-app/Chart.yaml
 
 ```yaml
-service:
-  internalPort: 5000
-  externalPort: 5000
+apiVersion: v1
+appVersion: "1.0"
+description: A Helm chart for Kubernetes
+name: crawler-app
+version: 0.1.0
+```
 
+### Crawler values vars <a name="charts-crawler-values"></a>
+crawler-app/values.yaml
+
+```yaml
+bot:
+  image:
+    repository: asurov/crawler
+    tag: latest
+ui:
+  image:
+    repository: asurov/crawler-ui
+    tag: latest
+rabbitmq:
+  rabbitmq:
+      username: guest
+      password: guest
+mongodb:
+  usePassword: false
+```
+## Шаблонизируем сервис Робота <a name="charts-bot"></a>
+
+### Bot values var <a name="charts-bot-values"></a>
+
+bot/values.yaml
+
+```yaml
 image:
-  repository: asomir/post
+  repository: asurov/crawler
   tag: latest
 
-databaseHost:
-```
-##### Шаблонизируем сервис comment:
+MONGO:
 
-comment/templates/deployment.yaml
+RMQ_HOST:
+```
+### Bot Chart <a name="charts-bot-chart"></a>
+bot/Chart.yaml
 
 ```yaml
-apiVersion: apps/v1beta2
+name: bot
+version: 1.0.0
+description: Bot for grab information by sites
+maintainers:
+  - name: Artem Surov
+    email: artemka@surov.com
+appVersion: 1.0
+```
+
+### Bot Chart Deployment <a name="charts-bot-deployment"></a>
+
+bot/templates/deployment.yaml
+
+```yaml
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "bot.fullname" . }}
   labels:
-    app: reddit
-    component: comment
+    app: crawler
+    component: bot
     release: {{ .Release.Name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: reddit
-      component: comment
+      app: crawler
+      component: bot
       release: {{ .Release.Name }}
   template:
     metadata:
-      name: comment
+      name: crawler-pod
       labels:
-        app: reddit
-        component: comment
+        app: crawler
+        component: bot
         release: {{ .Release.Name }}
     spec:
       containers:
       - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-        name: comment
-        ports:
-        - containerPort: {{ .Values.service.internalPort }}
-          name: comment
-          protocol: TCP
-        env:
-        - name: COMMENT_DATABASE_HOST
-          value: {{ .Values.databaseHost | default (printf "%s-mongodb" .Release.Name) }}
+        name: crawler
+        env: 
+        - name: MONGO
+          value: {{ .Values.mongoHost | default (printf "%s-mongodb" .Release.Name) }}
+        - name: RMQ_HOST
+          value: {{ .Values.rmqHost | default (printf "%s-rabbitmq" .Release.Name) }}
 ```
-comment/templates/service.yaml
+
+### Bot Chart helper <a name="charts-bot-helper"></a>
+
+bot/templates/_helpers.tpl
 
 ```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  labels:
-    app: reddit
-    component: comment
-    release: {{ .Release.Name }}
-spec:
-  type: ClusterIP
-  ports:
-  - port: {{ .Values.service.externalPort }}
-    protocol: TCP
-    targetPort: {{ .Values.service.internalPort }}
-  selector:
-    app: reddit
-    component: comment
-    release: {{ .Release.Name }}
+{{- define "bot.fullname" -}}
+{{- printf "%s-%s" .Release.Name .Chart.Name }}
+{{- end -}}
 ```
 
-comment/values.yaml
 
-```yaml
-service:
-  internalPort: 9292
-  externalPort: 9292
 
-image:
-  repository: asomir/comment
-  tag: latest
-
-databaseHost:
-```
-
-##### Итоговая структура выглядит вот так:
+##### Итоговая структура выглядит вот так: <a name="charts-structure"></a>
 
 ```markdown
-├── comment
+├── bot
 │   ├── Chart.yaml
 │   ├── templates
 │   │   ├── deployment.yaml
-│   │   └── service.yaml
+│   │   └── _helpers.tpl
 │   └── values.yaml
-├── post
+├── crawler-app
 │   ├── Chart.yaml
-│   ├── templates
-│   │   ├── deployment.yaml
-│   │   └── service.yaml
+│   ├── requirements.yaml
 │   └── values.yaml
-├── reddit
+├── gitlab-omnibus
+│   ├── CHANGELOG.md
+│   ├── charts
+│   │   └── gitlab-runner
+│   │       ├── Chart.yaml
+│   │       ├── README.md
+│   │       ├── templates
+│   │       │   ├── _cache_s3.tpl
+│   │       │   ├── configmap.yaml
+│   │       │   ├── deployment.yaml
+│   │       │   ├── _helpers.tpl
+│   │       │   ├── NOTES.txt
+│   │       │   ├── role-binding.yaml
+│   │       │   ├── role.yaml
+│   │       │   ├── secrets.yaml
+│   │       │   └── service-account.yaml
+│   │       └── values.yaml
+│   ├── Chart.yaml
+│   ├── README.md
+│   ├── requirements.yaml
+│   ├── templates
+│   │   ├── fast-storage
+│   │   │   └── storage.yaml
+│   │   ├── gitlab
+│   │   │   ├── gitlab-config-storage.yaml
+│   │   │   ├── gitlab-deployment.yaml
+│   │   │   ├── gitlab-storage.yaml
+│   │   │   ├── gitlab-svc.yaml
+│   │   │   ├── postgresql-configmap.yaml
+│   │   │   ├── postgresql-deployment.yaml
+│   │   │   ├── postgresql-storage.yaml
+│   │   │   ├── postgresql-svc.yaml
+│   │   │   ├── redis-deployment.yaml
+│   │   │   ├── redis-storage.yaml
+│   │   │   └── redis-svc.yaml
+│   │   ├── gitlab-config.yaml
+│   │   ├── _helpers.tpl
+│   │   ├── ingress
+│   │   │   ├── gitlab-ingress.yaml
+│   │   │   └── gitlab-pages-ingress.yaml
+│   │   ├── load-balancer
+│   │   │   ├── lego
+│   │   │   │   ├── 00-namespace.yaml
+│   │   │   │   ├── configmap.yaml
+│   │   │   │   └── deployment.yaml
+│   │   │   └── nginx
+│   │   │       ├── 00-namespace.yaml
+│   │   │       ├── configmap.yaml
+│   │   │       ├── daemonset.yaml
+│   │   │       ├── default-deployment.yaml
+│   │   │       ├── default-service.yaml
+│   │   │       ├── service.yaml
+│   │   │       └── tcp-configmap.yaml
+│   │   └── NOTES.txt
+│   └── values.yaml
 └── ui
     ├── Chart.yaml
     ├── templates
     │   ├── deployment.yaml
-    │   ├── ingress.yaml
+    │   ├── _helpers.tpl
     │   └── service.yaml
     └── values.yaml
+
 
 ```
 
@@ -920,9 +782,9 @@ Helper - это написанная нами функция. В функция 
 
 Шаблоны этих функций распологаются в файле _helpers.tpl
 ```
-##### Пример функции comment.fullname :
+## Пример функции comment.fullname <a name="charts-helpers"></a>
 
-charts/comment/templates/_helpers.tpl
+_helpers.tpl
 
 ```markdown
 {{- define "comment.fullname" -}}
@@ -933,36 +795,15 @@ charts/comment/templates/_helpers.tpl
 {{ .Release.Name }}-{{ .Chart.Name }}
 
 
-##### И заменим в соответствующие строчки в файле, чтобы использовать helper
 
-charts/comment/templates/service.yaml
 
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ template "comment.fullname" . }}  # было name: {{ .Release.Name }}-{{ .Chart.Name }}
-  labels:
-    app: reddit
-    component: comment
-    release: {{ .Release.Name }}
-spec:
-  type: ClusterIP
-  ports:
-  - port: {{ .Values.service.externalPort }}
-    protocol: TCP
-    targetPort: {{ .Values.service.internalPort }}
-  selector:
-    app: reddit
-    component: comment
-    release: {{ .Release.Name }}
-```
+
 
 ```markdown
 с помощью template вызывается функция comment.fullname, описанная ранее в файле _helpers.tpl
 ```
 
-##### Структура ипортирующей функции template
+### Структура ипортирующей функции template <a name="charts-helpers-structure"></a>
 
 ```markdown
                 {{ template "comment.fullname" . }}
