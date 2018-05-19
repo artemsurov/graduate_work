@@ -10,11 +10,14 @@
   - [ ] Инфраструктура для сбора обратной связи (как думаете, что здесь имелось ввиду? Настроенные chart с prometheus?)
 
 - [X] Использование практики IaC (Infrastructure as Code) для управления конфигурацией и инфраструктурой 
-  - Настроены Dockerfile и описаны объекты Kubernets в yaml, управляется все это с Chart-ов Helm-a
+  - Настроены Dockerfile и описаны объекты Kubernets в yaml (правда, надо описать нормаьный Service для UI, а то до него снаружи не достучаться, может можно и https добавить), управляется все это с Chart-ов Helm-a
 - [X] Настроен процесс CI/CD
 - [X] Все, что имеет отношение к проекту хранится в Git (Кроме логинов и  паролей)
 - [ ] Настроен процесс сбора обратной связи:
-  - [ ] Мониторинг (сбор метрик, алертинг, визуализация)
+  - [ ] Мониторинг
+    - [ ] Сбор метрик
+    - [ ] Визуализация
+    - [ ] Алерты
   - [ ] Логирование (опционально)
   - [ ] Трейсинг (опционально)
   - [ ] ChatOps (опционально) 
@@ -24,27 +27,37 @@
   - [ ] How to start?
   - [ ] CHANGELOG с описанием выполненной работы
   - [ ] Если работа в группе, то пункт включает автора изменений
+
 ## Простой запуск приложения в Docker контейнерах
 
 1. Cобираем образ c тэгом `"docker build . -t asurov/name"`
 2. Создаем сеть - пользовательский bridge`"docker network create --driver mynet"`
-3. Запускаем контейнеры `"docker run -dit  --network kurs --name nm asurov/cntname"`, не забудем пробросить порты для ui приложения `"-p 80:8000"`, а также правильно проименовать сервисы mongo и rabitmq, чтобы приложения нашли их.
+3. Запускаем контейнеры `"docker run -dit  --network kurs --name nm asurov/cntname"`, не забудем пробросить порты для `ui` приложения `"-p 80:8000"`, а также правильно проименовать сервисы `mongo` и `rabbitmq`, чтобы приложения нашли их.
 4. Проверяем в браузере
-## Описываем контейнеры в kubernete объектах и helme
+
+## Описываем контейнеры объектами helm и kubernetes
     
 При ининциализации Tiller-a имет смысл не забыть дать ему собственный ServiceAccount.
-ServiceAccount описан в tiller.yaml, загружаем в kubernetes:
+ServiceAccount описан в `tiller.yaml`, загружаем в kubernetes:
+```
 kubectl apply -f tiller.yml
-Инициализируем tiller:
+# Инициализируем tiller:
 helm init --service-account tiller
+```
 
-Для установки gitlaba нужно выполнить следующие команды:
-Отключить RBAC для упрощения работы.
+Для установки GitLaba нужно выполнить следующие команды:
+```
+# Отключить RBAC для упрощения работы.
 helm install --name gitlab . -f values.yaml
-Узнать ip адрес:
+# Узнать ip адрес:
 kubectl get service -n nginx-ingress nginx
-echo "35.234.78.177 gitlab-gitlab staging production” | sudo tee -a /etc/hosts
-Репозиторий должен быть публичный иначе Ci не сможет выгрузить chart-s для helm и надо будет настраивать доступ по ssh (https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/ci/ssh_keys/README.md)
-Чтобы сохранять контейнеры в hub.docker необходимо указать логин (CI_REGISTRY_USER) и пароль (CI_REGISTRY_PASSWORD) в переменных окружения gitlab ci.
-Для деплой в другой кластер необходимо получить service acccunt GCP в json формате, зашифровать его base64 и сохранить в переменной service_account в gitlab-ci.
+echo "35.234.78.177 gitlab-gitlab staging production" | sudo tee -a /etc/hosts
+```
+
+Репозиторий должен быть публичный иначе CI не сможет выгрузить chart-s для helm и надо будет [настраивать доступ по ssh](https://gitlab.com/gitlab-org/gitlab-ce/blob/master/doc/ci/ssh_keys/README.md).
+Чтобы сохранять контейнеры в docker-hub, необходимо указать дополнительные переменные окружения GitLab-CI
+* логин --- `CI_REGISTRY_USER`
+* пароль --- `CI_REGISTRY_PASSWORD`
+
+Для деплоя в другой k8s-кластер необходимо получить `service account` GCP в `json` формате, зашифровать его в base64 и сохранить в переменной окружения `service_account` в GitLab-CI.
 
