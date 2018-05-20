@@ -821,18 +821,6 @@ serverFiles:
           - source_labels: [__meta_kubernetes_service_name]
             target_label: kubernetes_name
 
-      - job_name: 'crawler_pods'
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            action: keep
-            regex: crawler
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            action: keep
-            regex: crawler
-          __meta_kubernetes_pod_container_port_number]
-
 networkPolicy:
   ## Enable creation of NetworkPolicy resources.
   ##
