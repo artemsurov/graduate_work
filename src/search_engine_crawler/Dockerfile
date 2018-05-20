@@ -5,12 +5,6 @@ COPY . /app
 
 RUN pip install -r /app/requirements.txt
 
-#ENV MONGO 
-#ENV RMQ_HOST
-#ENV RMQ_QUEUE
-#ENV RMQ_USERNAME
-#ENV RMQ_PASSWORD
-#ENV CHECK_INTERVAL
 ENV EXCLUDE_URLS '.*github.com'
 
 ENTRYPOINT ["python", "-u", "/app/crawler/crawler.py"]
