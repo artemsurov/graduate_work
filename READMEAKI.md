@@ -36,6 +36,7 @@
       - [У чарта Краулера есть свой чарт](#charts-crawler-chart)
       - [Краулер раскрывает карты](#charts-crawler-values)
       - [Что же значили те буковки?](#charts-ui-values)
+      - [От кого зависит жизнь Краулера?](#charts-crawler-requirements)
 
    3.[Мечтают ли боты побывать в Чарте?](#charts-bot)
 
@@ -217,7 +218,7 @@ spec:
         component: crawler-app
     spec:
       containers:
-      - image: asurov/crawler
+      - image: asurov/crawler       # Поднимаем контейнер им Николая Артёмовича Краулера
         name: crawler
 ```
 ### Разворачиваем RabbitMQ в Kubernetes <a name="rabbit-kubernetes"></a>
@@ -245,7 +246,7 @@ spec:
         component: rabbit
     spec:
       containers:
-      - image: rabbitmq:3
+      - image: rabbitmq:3           # Поднимаем RabbitMQ 3 версии
         name: rabbit
 ```
 
@@ -261,7 +262,7 @@ metadata:
     component: rabbit-svc
 spec:
   ports:
-  - name: epmd
+  - name: epmd              # Порты взяты из приложенного соответствующего Charta
     port: 5672
   - name: amqp
     port: 4369
@@ -276,6 +277,10 @@ spec:
 
 ### Разворачиваем MongoDB в Kubernetes <a name="mongo-kubernetes"></a>
 #### MongoDB deployment <a name="mongo-kubernetes-deployment"></a>
+
+Подсистема PersistentVolume предоставляет API для пользователей и администраторов, которые абстрагируют информацию о том, как хранилище предоставляется из того, как оно потребляется.
+Поднимем базу данных MongoDB и примонтируем к ней PersistentVolume размером 10Гб. Опишем в одном файле БД и PV:
+
 ```yml
 apiVersion: apps/v1beta1
 kind: Deployment
@@ -298,17 +303,17 @@ spec:
         component: mongo
     spec:
       containers:
-      - image: mongo:3.2
+      - image: mongo:3.2                    # Создаём контейнер с Монгой
         name: mongo
-        volumeMounts:
+        volumeMounts:                       # Маунтим PersistentVolume
         - name: mongo-gce-pd-storage
           mountPath: /data/db
       volumes:
-      - name: mongo-gce-pd-storage
+      - name: mongo-gce-pd-storage          # Указываем, какой именно сторадж маунтить
         persistentVolumeClaim:
           claimName: mongo-pvc-dynamic
 ---
-kind: PersistentVolumeClaim
+kind: PersistentVolumeClaim                 # Создаём PersistentVolume
 apiVersion: v1
 metadata:
   name: mongo-pvc-dynamic
@@ -317,7 +322,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 10Gi                         # Размер
 ```
 #### MongoDB service <a name="rabbit-kubernetes-service"></a>
 
@@ -331,7 +336,7 @@ metadata:
     component: mongo
 spec:
   ports:
-  - port: 27017
+  - port: 27017             # Открываем порты, по которым будем работать с Монгой
     protocol: TCP
     targetPort: 27017
   selector:
@@ -619,6 +624,28 @@ rabbitmq:
 mongodb:
   usePassword: false
 ```
+
+### Указываем зависимости, которые необходимо подгрузить для работы приложения, - другие соседние сервисы:
+
+kubernetes/charts/crawler-app/requirements.yaml <a name="charts-crawler-requirements"></a>
+
+```yml
+dependencies:
+  - name: ui
+    version: 1.0.0
+    repository: file://../ui
+  - name: bot
+    version: 1.0.0
+    repository: file://../bot
+  - name: rabbitmq
+    version: 0.8.1
+    repository: https://kubernetes-charts.storage.googleapis.com
+  - name: mongodb
+    version: 2.0.4
+    repository: https://kubernetes-charts.storage.googleapis.com
+```
+Когда запускаем Хельм, создаются архивы тех приложений, которые описаны в requirements.yaml, в папке kubernetes/charts/crawler-app/charts
+
 ## Шаблонизируем сервис Робота <a name="charts-bot"></a>
 
 ### Bot values var <a name="charts-bot-values"></a>
@@ -815,3 +842,4 @@ _helpers.tpl
                              
 “.”- вся область видимости всех переменных (можно передать .Chart , тогда .Values не будут доступны внутри функции)                             
 ```
+
