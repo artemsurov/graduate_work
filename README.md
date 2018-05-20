@@ -1,4 +1,7 @@
 # Курсовая работа
+Значения в /etc/hosts
+35.234.78.177 gitlab-gitlab staging production
+35.188.78.251 crawler-prometheus reddit-grafana reddit-non-prod production reddit-kibana
 
 # Check list
 - [ ] Автоматизированные процессы создания и управления
