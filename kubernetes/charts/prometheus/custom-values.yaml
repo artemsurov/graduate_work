@@ -4,7 +4,7 @@ rbac:
 alertmanager:
   ## If false, alertmanager will not be installed
   ##
-  enabled: false
+  enabled: true
 
   # Defines the serviceAccountName to use when `rbac.create=false`
   serviceAccountName: default
@@ -565,18 +565,16 @@ pushgateway:
     type: ClusterIP
 
 ## alertmanager ConfigMap entries
-##
-alertmanagerFiles:
+## 
+alertmanagerFiles: 
   alertmanager.yml: |-
     global:
-      # slack_api_url: ''
-
+      slack_api_url: 'https://hooks.slack.com/services/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'
     receivers:
-      - name: default-receiver
-        # slack_configs:
-        #  - channel: '@you'
-        #    send_resolved: true
-
+    - name: default-receiver
+      slack_configs:
+      - channel: '#general'
+        send_resolved: true  
     route:
       group_wait: 10s
       group_interval: 5m
@@ -586,7 +584,18 @@ alertmanagerFiles:
 ## Prometheus server ConfigMap entries
 ##
 serverFiles:
-  alerts: {}
+  alerts:
+    groups:
+      - name: alert.rules
+        rules:
+        - alert: InstanceDown
+          expr: up == 0
+          for: 1m
+          labels:
+            severity: page
+          annotations:
+            description: '{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute'
+            summary: 'Instance {{ $labels.instance }} down'
   rules: {}
 
   prometheus.yml:
@@ -596,6 +605,13 @@ serverFiles:
 
     global:
       scrape_interval: 30s
+
+    alerting:
+      alertmanagers:
+      - scheme: http
+        static_configs:
+        - targets:
+          - "alertmanager:9093"
 
     scrape_configs:
       - job_name: prometheus
